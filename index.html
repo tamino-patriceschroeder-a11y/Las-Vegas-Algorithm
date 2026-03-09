@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>Mini Algorythmus?</title>
+    <meta charset="UTF-8">
+    <style>
+        html {
+            background-color: #1e1e1e
+        }
+
+        body {
+            background-color: #2e2e2e;
+            color: white;
+            border-radius: 8px;
+            padding: 5px;
+            margin: 5px;
+            font-family: Arial;
+        }
+        b{
+            color: #00fdff;
+        }
+    </style>
+</head>
+<body>
+    <button id="scrollBtn" onclick="scrollToBottom()" style="
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    background: #00ff00;
+    color: black;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    z-index: 1000;">
+    Nach unten ↓
+</button><button id="scrollTopBtn" onclick="scrollToTop()" style="
+    position: fixed;
+    bottom: 70px; /* Ein Stück über dem 'Nach unten' Button */
+    right: 20px;
+    padding: 10px 15px;
+    background: #555;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    z-index: 1000;">
+    Nach oben ↑
+</button>
+<button id="goalBtn" onclick="jumpToGoal()" style="
+    display: none; 
+    position: fixed;
+    bottom: 120px;
+    right: 20px;
+    background: gold;
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 0 10px rgba(255,215,0,0.5);">
+    Zum Ziel
+</button>
+
+
+    <details>
+        <summary>Statistiken</summary>
+        <span id="infos"></span>
+        <!--<iframe id="statsFrame" src="stats.html" style="width:100%; height:200px; border:none;"></iframe>-->
+        <textarea id="ioField" placeholder="JSON hier kopieren/einfügen" style="width:100%; height:50px;"></textarea>
+    <br>
+    <button onclick="saveToField()">Stand Exportieren</button>
+    <button onclick="loadFromField()">Stand Importieren</button>
+    </details>
+    <hr>
+    <span id="count">---</span>
+    <br>
+    <span id="mainCounter">---</span>
+    <details id="liste" open><summary>Ergebnisse</summary></details>
+    <script>
+        function scrollToBottom() {
+            const liste = document.getElementById('liste');
+            // Wir nehmen das letzte Kind-Element der Liste als Ziel
+            if (liste.lastElementChild) {
+                liste.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+        }
+        
+        function scrollToTop() {
+            const liste = document.getElementById('liste');
+            // Wir nehmen das erste Kind-Element oder den Container selbst
+            if (liste) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        
+        function X(){
+            for (let i = 1; i < 99999; i++) window.clearInterval(i)
+        }
+        
+        function saveToField() {
+            const state = {
+                counter,
+                html: liste.innerHTML
+            };
+            document.getElementById('ioField').value = JSON.stringify(state);
+        }
+
+        function loadFromField() {
+            const raw = document.getElementById('ioField').value;
+            if (!raw)
+                return;
+            const state = JSON.parse(raw);
+            counter = state.counter;
+            liste.innerHTML = state.html;
+            count.innerText = 'Geladen: ' + counter + ' Versuche';
+        }
+
+        function jumpToGoal() {
+            const goal = document.getElementById('goalReached');
+            if (goal) {
+                // Alle übergeordneten <details> aufklappen
+                let parent = goal.parentElement;
+                while (parent) {
+                    if (parent.tagName === 'DETAILS') {
+                        parent.open = true;
+                    }
+                    parent = parent.parentElement;
+                }
+                // Zum Ziel scrollen
+                goal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        const count = document.getElementById('count');
+        const mainCounter = document.getElementById('mainCounter');
+        const liste = document.getElementById('liste');
+        const infos = document.getElementById('infos');
+        let counter = 0;
+        let wert;
+        let show = false;
+        let reachEnd = false;
+        let reachGoal = false;
+        let mainCount = 0;
+        let sortN = 0;
+        let currentGroup = null; // Hält das aktuelle details-Element
+
+        function random(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        function randomKomma(min, max, decimalPlaces) {
+            const rand = Math.random() * (max - min) + min;
+            return rand.toFixed(decimalPlaces);
+        }
+
+        function main(ziel, start, stop, speed, max, GoH) {
+            GH = GoH;
+            showData(ziel, start, stop, speed, max, GoH);
+            
+            count.style.color = 'white';
+            if (GoH === 'G') {
+                wert = random(start, stop);
+            } else {
+                wert = randomKomma(start, stop, GoH);
+            }
+
+            if (wert == ziel) {
+                reachGoal = true;
+
+                console.log("%cZiel Erreicht", "color: black; background: #00ff00; font-size: 50px; padding: 10px; border-radius: 5px;");
+                console.log(`Erfolg nach ${mainCount} Versuchen mit dem Wert ${ziel}`);
+
+                // 2. Ziel-Element erstellen und ID vergeben
+                const successSpan = document.createElement('span');
+                successSpan.id = "goalReached"; 
+                successSpan.style.color = "gold";
+                successSpan.style.fontWeight = "bold";
+                successSpan.innerHTML = `<br><hr>Ziel ${ziel} (nach dem ${mainCount}. Versuch)`;
+
+                (currentGroup || liste).appendChild(successSpan);
+
+                // 3. Den Knopf sichtbar machen
+                document.getElementById('goalBtn').style.display = 'block';
+
+                count.innerText = 'Erfolg mit ' + counter + ' Versuchen';
+                count.style.color = '#00ff00';
+                show = false;
+            }else {
+                counter++;
+                mainCount++;
+                sortN++;
+
+                count.innerText = 'Bisher ' + counter + ' Versuche mit dem Ziel ' + ziel;
+                mainCounter.innerText = 'Insgesamt ' + mainCount + ' Versuche';
+
+                // Logik für die Gruppierung alle 100 Versuche
+                if (sortN === 1 || (sortN - 1) % 100 === 0) {
+                    currentGroup = document.createElement('details');
+                    const summary = document.createElement('summary');
+
+                    // Titel z.B.: "Versuche 101 - 200"
+                    let bis = (Math.ceil(mainCount / 100) * 100);
+                    let von = bis - 99;
+                    summary.textContent = `Versuche ${von} - ${bis}`;
+                    summary.style.cursor = 'pointer';
+                    summary.style.fontWeight = 'bold';
+
+                    currentGroup.appendChild(summary);
+                    liste.appendChild(currentGroup);
+                }
+
+                // Das Element erstellen
+                const span = document.createElement('span');
+                span.textContent = mainCount + ': ' + wert;
+
+                // In das aktuelle Details-Element einfügen, statt direkt in die Liste
+                currentGroup.appendChild(document.createElement('br'));
+                currentGroup.appendChild(span);
+
+                setTimeout(() => {
+                    main(ziel, start, stop, speed, max, GoH);
+                }, speed);
+            }
+            // Sende die Anzahl der Versuche an das Statistik-Iframe
+            /*const frame = document.getElementById('statsFrame').contentWindow;
+            frame.postMessage({type: 'SUCCESS',versuche: counter}, '*');*/
+
+        }
+        
+        function showData(ziel, start, stop, speed, max, GoH){
+            let GoHv;
+            if(show !== 'true'){
+                if(GoH == 'G'){
+                    GoHv = 'Ganze Zahl'
+                }else{
+                    GoHv = 'Halbe Zahl bis nachkommastelle: ' + GoH;
+                }
+                infos.innerHTML = '<span> <b>Ziel:</b> ' + ziel + '<br> <b>Startwert:</b> ' + start + '<br> <b>Endwert:</b> ' + stop + '<br> <b>Wartezeit zwischen versuchen:</b> ' + speed + 'ms' + '<br> <b>Stoppen bei:</b> ' + max + '<br> <b>Ganze- oder Halbe Zahl:</b> ' + GoHv;
+                 show = true;
+            }
+        }
+
+        console.log('main(ziel, start, stop, speed, max, GoH)');
+        //GoH: Ganze oder Halbe Zahlen
+        console.log(main);
+        
+        function expe(zielWert, nachkommaStellen) {
+            console.log("Experiment gestartet...");
+
+            const monitor = setInterval(() => {
+                if (typeof DOOM !== 'undefined' && DOOM === true) {
+                    console.log('STOPP: DOOM wurde aktiviert.');
+                    clearInterval(monitor); 
+                    return;
+                }
+
+                if (reachEnd === true || counter === 0) {
+
+                    if (reachGoal === true) {
+                        console.log('Ziel erreicht! Monitor beendet.');
+                        clearInterval(monitor);
+                        return;
+                    }
+
+                    reachEnd = false;
+                    counter = 0; 
+
+                    main(zielWert, 0, 10, 100, 10, nachkommaStellen);
+                }
+            }, 200);
+        }
+    </script>
+</body>
+</html>
